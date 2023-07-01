@@ -2,43 +2,49 @@ library(haven)
 library(tidyverse)
 library(lmtest)
 library(clusterSEs)
-#SugarReplicate <- read_dta("Documents/GitHub/SugarReplication/replication data file/SugarReplicate.dta")
+library(marginaleffects)
+library(margins)
+library(foreign)
+SugarReplicate <- read_dta("Documents/GitHub/SugarReplication/replication data file/SugarReplicate.dta")
 SugarReplicate <- read_dta("/Users/teri/Documents/GitHub/SugarReplication/replication data file/SugarReplicate.dta")
-data <- SugarReplicate
-data$yesvote <- as.numeric(data$vote == "Aye")
-data$repub <- as.numeric(data$vote == "Republican")
-data$rsugcont <- data$totalcont
-data$rsugcont[data$cong == 115] <- data$totalcont[data$cong == 115] / 1.103
+sugdata <- SugarReplicate
+sugdata$yesvote <- as.numeric(sugdata$vote == "Aye")
+sugdata$repub <- as.numeric(sugdata$vote == "Republican")
+sugdata$rsugcont <- sugdata$totalcont
+sugdata$rsugcont[sugdata$cong == 115] <- sugdata$totalcont[sugdata$cong == 115] / 1.103
 
 ## Fix Name Mismatch
-data$name[data$name == "Cárdenas"] = "Cardenas"
-data$name[data$name == "Sander Levin"] = "Levin"
-data$name[data$name == " Levin"] = "Levin"
-data$name[data$name == "Luján"] = "Lujan"
-data$name[data$name == "Velázquez"] = "Velazquez"
-data$name[data$name == "Sánchez"] = "Sanchez"
-data$name[data$name == "Gutiérrez"] = "Gutierrez"
-data$name[data$name == " Smith"] = "Smith"
-
+sugdata$name[sugdata$name == "Cárdenas"] = "Cardenas"
+sugdata$name[sugdata$name == "Sander Levin"] = "Levin"
+sugdata$name[sugdata$name == " Levin"] = "Levin"
+sugdata$name[sugdata$name == "Luján"] = "Lujan"
+sugdata$name[sugdata$name == "Velázquez"] = "Velazquez"
+sugdata$name[sugdata$name == "Sánchez"] = "Sanchez"
+sugdata$name[sugdata$name == "Gutiérrez"] = "Gutierrez"
+sugdata$name[sugdata$name == " Smith"] = "Smith"
+sugdata$id <- relevel(as.factor(sugdata$id), ref = "5506")
 
 # models 1 and 2 are the author's model 
 model1 <- glm(yesvote ~ rsugcont + ncu + tenure + poverty + bach + 
                 medincome + over65 + agcom + factor(id), family = binomial(link = "logit"),
               data = data)
-#Robust SE
+
+coeftest(model1, vcov = vcovHC(model1, type = "HC0"))
 coeftest(model1, vcov = sandwich)
 
 model2 <- glm(yesvote ~ rsugcont + ncu + tenure + poverty + bach + 
                 medincome + over65 + agcom + factor(id), family = binomial(link = "logit"),
               data = data[data$both == 1, ])
 #Robust SE 
+coeftest(model2, vcov = vcovHC(model2, type = "HC0"))
 coeftest(model2, vcov = sandwich)
 #coeftest(model2, vcov = vcovHC(model2, type = "HC0"))
 
 # Getting author's tables in latex
 stargazer(model1, model2, omit="id")
 
-data_wide <- data |> 
+
+data_wide <- sugdata |> 
   dplyr::select(cong, name, yesvote, rsugcont, ncu, tenure, poverty, bach, medincome, over65, agcom, id, state) |> 
   pivot_wider(names_from = cong,
               values_from = c(name, yesvote, rsugcont, ncu, tenure, poverty, bach, medincome, over65, agcom))
@@ -72,7 +78,8 @@ coeftest(model3, vcov = vcovHC(model3, type = "HC0", cluster = "id"))
 
 # changing from no to yes 
 model4 <- glm(vote_change ~ sugdiff + ncu_diff + tenure_113 + pov_avg + bach_avg +
-                medincome_avg + over65_avg + agcom_diff + factor(state), data = samerep_nty)
+                medincome_avg + over65_avg + agcom_diff + factor(state), 
+              family = binomial(link = "logit"), data = samerep_nty)
 coeftest(model4, vcov = vcovHC(model4, type = "HC0", cluster = "id"))
 
 
@@ -100,9 +107,12 @@ coeftest(model6, vcov = vcovHC(model6, type = "HC0", cluster = "id"))
 
 library(sjPlot)
 #predicted values 
+plot_predictions(model3, condition = "sugdiff")
 plot_predictions(model1, condition = "rsugcont")
+x = cplot(model1, x = "rsugcont")
+margins(model1, type = "response")
+x = cplot(model3, "sugdiff", what = "prediction", main = "Predicted Fuel Economy, Given Weight")
+cplot(randommod, "bach")
+margins(model1, at = list(rsugcont = seq(0, 20000, 500)))
 
-
-
-
-
+summary(model1)
