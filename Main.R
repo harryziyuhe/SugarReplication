@@ -20,6 +20,8 @@ data$name[data$name == "Sánchez"] = "Sanchez"
 data$name[data$name == "Gutiérrez"] = "Gutierrez"
 data$name[data$name == " Smith"] = "Smith"
 
+
+# models 1 and 2 are the author's model 
 model1 <- glm(yesvote ~ rsugcont + ncu + tenure + poverty + bach + 
                 medincome + over65 + agcom + factor(id), family = binomial(link = "logit"),
               data = data)
@@ -56,6 +58,7 @@ samerep_ytn$vote_change <- -samerep_ytn$vote_change
 samerep_nty <- data_wide |> 
   filter(diff_name == 0 & vote_change >= 0 & yesvote_113 == 0)
 
+# Models 3 4 5 and 6 are our models based
 model3 <- glm(vote_change ~ sugdiff + ncu_diff + tenure_113 + pov_avg + bach_avg +
                 medincome_avg + over65_avg + agcom_diff + factor(state), data = samerep_ytn)
 coeftest(model3, vcov = vcovHC(model3, type = "HC0", cluster = "id"))
