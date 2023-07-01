@@ -26,14 +26,23 @@ sugdata$id <- relevel(as.factor(sugdata$id), ref = "5506")
 
 # models 1 and 2 are the author's model 
 model1 <- glm(yesvote ~ rsugcont + ncu + tenure + poverty + bach + 
-                medincome + over65 + agcom + id, family = binomial(link = "logit"),
-              data = sugdata)
+                medincome + over65 + agcom + factor(id), family = binomial(link = "logit"),
+              data = data)
+
 coeftest(model1, vcov = vcovHC(model1, type = "HC0"))
+coeftest(model1, vcov = sandwich)
 
 model2 <- glm(yesvote ~ rsugcont + ncu + tenure + poverty + bach + 
-                medincome + over65 + agcom + id, family = binomial(link = "logit"),
-              data = sugdata[sugdata$both == 1, ])
+                medincome + over65 + agcom + factor(id), family = binomial(link = "logit"),
+              data = data[data$both == 1, ])
+#Robust SE 
 coeftest(model2, vcov = vcovHC(model2, type = "HC0"))
+coeftest(model2, vcov = sandwich)
+#coeftest(model2, vcov = vcovHC(model2, type = "HC0"))
+
+# Getting author's tables in latex
+stargazer(model1, model2, omit="id")
+
 
 data_wide <- sugdata |> 
   dplyr::select(cong, name, yesvote, rsugcont, ncu, tenure, poverty, bach, medincome, over65, agcom, id, state) |> 
@@ -61,16 +70,22 @@ samerep_ytn$vote_change <- -samerep_ytn$vote_change
 samerep_nty <- data_wide |> 
   filter(diff_name == 0 & vote_change >= 0 & yesvote_113 == 0)
 
-# Models 3 4 5 and 6 are our models based
-model3 <- glm(vote_change ~ sugdiff * ncu_diff + tenure_113 + pov_avg + bach_avg +
-                medincome_avg + over65_avg + agcom_diff + factor(state), 
-              family = binomial(link = "logit"), data = samerep_ytn)
+# Models 3 to 6 are our models based
+# changing from yes to no 
+model3 <- glm(vote_change ~ sugdiff + ncu_diff + tenure_113 + pov_avg + bach_avg +
+                medincome_avg + over65_avg + agcom_diff + factor(state), data = samerep_ytn)
 coeftest(model3, vcov = vcovHC(model3, type = "HC0", cluster = "id"))
 
+# changing from no to yes 
 model4 <- glm(vote_change ~ sugdiff + ncu_diff + tenure_113 + pov_avg + bach_avg +
                 medincome_avg + over65_avg + agcom_diff + factor(state), 
               family = binomial(link = "logit"), data = samerep_nty)
 coeftest(model4, vcov = vcovHC(model4, type = "HC0", cluster = "id"))
+
+
+# Getting tables in latex
+stargazer(model3, model4, omit="state")
+
 
 all_ytn <- data_wide |> 
   filter(vote_change <= 0 & yesvote_113 == 1)
@@ -79,14 +94,19 @@ all_ytn$vote_change <- -all_ytn$vote_change
 all_nty <- data_wide |> 
   filter(vote_change >= 0 & yesvote_113 == 0)
 
+# similar to model 3 but interaction with sugar contribution and different candidate 
 model5 <- glm(vote_change ~ sugdiff * diff_name + ncu_diff + tenure_113 + pov_avg + bach_avg +
                 medincome_avg + over65_avg + agcom_diff + factor(state), data = all_ytn)
 coeftest(model5, vcov = vcovHC(model5, type = "HC0", cluster = "id"))
 
+# similar to model 4 but interaction with sugar contribution and different candidate 
 model6 <- glm(vote_change ~ sugdiff * diff_name + ncu_diff + tenure_113 + pov_avg + bach_avg +
                 medincome_avg + over65_avg + agcom_diff + factor(state), data = all_nty)
 coeftest(model6, vcov = vcovHC(model6, type = "HC0", cluster = "id"))
 
+
+library(sjPlot)
+#predicted values 
 plot_predictions(model3, condition = "sugdiff")
 plot_predictions(model1, condition = "rsugcont")
 x = cplot(model1, x = "rsugcont")
