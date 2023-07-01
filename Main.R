@@ -2,6 +2,7 @@ library(haven)
 library(tidyverse)
 library(lmtest)
 library(clusterSEs)
+SugarReplicate <- read_dta("Documents/GitHub/SugarReplication/replication data file/SugarReplicate.dta")
 SugarReplicate <- read_dta("/Users/teri/Documents/GitHub/SugarReplication/replication data file/SugarReplicate.dta")
 data <- SugarReplicate
 data$yesvote <- as.numeric(data$vote == "Aye")
@@ -20,12 +21,14 @@ data$name[data$name == "Gutiérrez"] = "Gutierrez"
 data$name[data$name == " Smith"] = "Smith"
 
 model1 <- glm(yesvote ~ rsugcont + ncu + tenure + poverty + bach + 
-      medincome + over65 + agcom + factor(id), family = binomial(link = "logit"),
-      data = data)
-model2 <- glm(yesvote ~ rsugcont + ncu + tenure + poverty + bach + 
-                medincome + over65 + agcom, family = binomial(link = "logit"),
+                medincome + over65 + agcom + factor(id), family = binomial(link = "logit"),
               data = data)
-summary(model2)
+coeftest(model1, vcov = vcovHC(model1, type = "HC0"))
+
+model2 <- glm(yesvote ~ rsugcont + ncu + tenure + poverty + bach + 
+                medincome + over65 + agcom + factor(id), family = binomial(link = "logit"),
+              data = data[data$both == 1, ])
+coeftest(model2, vcov = vcovHC(model2, type = "HC0"))
 
 data_wide <- data |> 
   dplyr::select(cong, name, yesvote, rsugcont, ncu, tenure, poverty, bach, medincome, over65, agcom, id, state) |> 
