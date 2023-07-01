@@ -3,6 +3,7 @@ library(tidyverse)
 library(lmtest)
 library(clusterSEs)
 SugarReplicate <- read_dta("Documents/GitHub/SugarReplication/replication data file/SugarReplicate.dta")
+SugarReplicate <- read_dta("/Users/teri/Documents/GitHub/SugarReplication/replication data file/SugarReplicate.dta")
 data <- SugarReplicate
 data$yesvote <- as.numeric(data$vote == "Aye")
 data$repub <- as.numeric(data$vote == "Republican")
